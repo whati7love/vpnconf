@@ -1,0 +1,138 @@
+Шаг 0.
+
+Арендуем сервер на  zomro.com
+Брал сервер со следующими параметрами:
+Premium VPS
+Размещение - Нидерланды-2
+Образ на Ubuntu 22.04
+Debian 11
+Clou Standart:
+CPU 1
+RAM 3 Gb
+NVMe 20 Gb
+Speed 1 Gbit/s
+OS Windows & Linux
+Price: 4.90 y.e.
+
+Подключение по паролю.
+
+Подключаемся к арендованному серверу через MobaXterm по SSH.
+Во время подключения внести пользователя root с паролем и сохранить.
+
+Шаг 1. (референс https://www.youtube.com/watch?v=M4rWLwzLmwM смотрел дл 4:20).
+Разворачиваем docker
+команды:
+Скачиванием скрипт установки: curl -fsSL https://get.docker.com -o get-docker.sh
+Установка докера sudo sh get-docker.sh
+Прим. Возможно докер уже устновлен на сервер, т.к. была показана справочная информация. Но без установки докера еще раз Шаг 2 не заводился.
+Шаг 2. (дока https://github.com/shadowsocks/shadowsocks-libev/blob/master/docker/alpine/README.md)
+Установка на сервер SS (Shadowsocks)
+Скачиваем SS: docker pull shadowsocks/shadowsocks-libev
+Запускаем контейнер: docker run -e PASSWORD=9MLSpPmNt -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
+
+Базовые настройки, пароль может отличаться, если запускали контейнер под другим паролем
+{
+    "server": "your-vps-ip",
+    "server_port": 8388,
+    "local_address": "0.0.0.0",
+    "local_port": 1080,
+    "password": "9MLSpPmNt",
+    "timeout": 600,
+    "method": "aes-256-gcm"
+}
+прим. в данном примере "server": 8388
+проверял работу через программу SS, скачивал zip на ПК тут https://ipfs.io/ipfs/Qma38UCuXzFFvsPJYn1zA82Nb9yUrUn2mdpmQahw5SvHDB/
+
+Шаг 3. (реф https://www.youtube.com/watch?v=7FKPs0_908U с 6:50 ) реф 2: https://itdog.info/tochechnoe-napravlenie-opredelyonnyh-podsetej-ip-adresov-i-domenov-na-keenetic/
+Разворачиваем kvas на роутере KEENETIC Ultra (KN-1810) EAEU, думаю что мануалы для других роутеров тоже присутствуют, нужны те, где описан коннект через SS.
+Репа в Git утилиты kvas: https://github.com/qzeleza/kvas?tab=readme-ov-file
+Мануал установки: https://github.com/qzeleza/kvas/wiki/%D0%A3%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%D0%BF%D0%B0%D0%BA%D0%B5%D1%82%D0%B0
+
+Из мануала следует, что подготовительные действия мы выполнили.
+Далее по мануалу с пункта 2.
+Установка Entware https://help.keenetic.com/hc/ru/articles/360021214160-%D0%A3%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D1%8B-%D0%BF%D0%B0%D0%BA%D0%B5%D1%82%D0%BE%D0%B2-%D1%80%D0%B5%D0%BF%D0%BE%D0%B7%D0%B8%D1%82%D0%BE%D1%80%D0%B8%D1%8F-Entware-%D0%BD%D0%B0-USB-%D0%BD%D0%B0%D0%BA%D0%BE%D0%BF%D0%B8%D1%82%D0%B5%D0%BB%D1%8C
+Будем устанавливать на внешний USB, подключенный к роутеру (у меня чистая флешка на 8 Gb.)
+Далее проходимся по инструкции установки Entware.
+Разворачиваем kvas по инструкции.
+
+cd /opt/tmp
+opkg install curl && curl -sOfL http://kvas.zeleza.ru/install && sh install
+
+Прим.
+#######---------------------------------------------------------------#######
+При установке SS словил ошибки - в гугл пускает, на другие ресурсы из мануала нет
+По логам вижу в команде kvas test шифрование с ошибкой, SS с ошибкой.
+Логи:
+
+Состояние службы dnsmasq                                          ЗАПУЩЕНА
+Отслеживание порта #53 сервисом dnsmasq                             СЛЕДИМ
+Шифрование DNS посредством dnscrypt-proxy2                        ОТКЛЮЧЕНО
+----------------------------------------------------------------------------
+Состояние службы shadowsocks                                    ОСТАНОВЛЕНА
+Перезапускаем еще раз shadowsocks                                  УСПЕШНО
+Отслеживание порта #1181 shadowsocks                                СЛЕДИМ
+
+После этого kvas завис на заполнении ipset:
+
+Наличие правил разблокировки в iptable                                ЕСТЬ
+Заполнение ipset таблицы скриптами КВАСа
+
+из отдельно окна google пингуется
+
+ping google
+
+Что делал дальше - удалил квас команда kvas uninstall full
+Вернул 53 порт на место, команды (указано в мануале):
+ndmc -c 'no opkg dns-override'
+ndmc -c 'system configuration save'
+reboot
+
+Снова освободил 53 порт для VPN.
+#######---------------------------------------------------------------#######
+
+РЕШЕНИЕ - ПРИ АКТИВАЦИИ SS УКАЗАТЬ IP АРЕНДОВАННОГО СЕРВЕРА!
+
+Проверка работоспособности - при переходе на https://myip2.ru/ указан IP арендованного сервера.
+Если зайти, например, на другой ресурс, https://pr-cy.ru/browser-details/ при отображении IP должен быть указан реальный. С локацией в РФ.
+Маршрутизация работает корректно.
+
+Шаг 4.
+После этого нужно внести заблокированные ресурсы в unblock list кваса.
+
+Делается это следующим образом:
+
+kvas add youtube.com (работает плохо т.к. скорее всего есть еще домены)
+
+Доступные команды можно посмотреть через:
+
+kvas help
+
+Добавим списком заблокированные домены.
+Возьмем за основу список с https://github.com/itdoginfo/allow-domains
+Сслылка на список https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-kvas.lst
+
+Чтобы установить, нужно выполнить команду:
+
+cd /tmp && curl -O https://raw.githubusercontent.com/whati7love/vpnconf/master/inside-kvas.lst && kvas import inside-kvas.lst
+
+этот этап займет минут 10
+
+Еще добавил от себя некоторые хосты, т.к. без них ютубу все еще грустно, хоть и работает.
+
+некотрые домены выцепил из:
+https://github.com/ValdikSS/GoodbyeDPI
+
+файлы (появятся после установки по инструкции)
+russia-blacklist
+russia-youtube
+
+Шаг 5. - экстра
+Дополнительно развернул WireGuard
+Как поднять:
+
+curl -O https://raw.githubusercontent.com/angristan/wireguard-install/master/wireguard-install.sh
+chmod +x wireguard-install.sh
+
+sudo ./wireguard-install.sh
+
+забираем конфиг файл с сервера и подцепляем в роутер, предварительно установив утилиту wireguard
